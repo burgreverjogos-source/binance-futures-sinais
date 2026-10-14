@@ -1,7 +1,7 @@
 import time
-import ccxt
 import pandas as pd
 import plotly.graph_objects as go
+import requests
 import streamlit as st
 from ta.momentum import RSIIndicator
 from ta.trend import EMAIndicator
@@ -80,14 +80,14 @@ else:  # Moderado
 
 st.markdown("---")
 
-# 6 Ativos consolidados com os pares oficiais da Binance Futures via CCXT
+# 6 Ativos consolidados com os pares oficiais da Binance Futures
 COINS = {
-    "Bitcoin (BTC)": "BTC/USDT:USDT",
-    "Ethereum (ETH)": "ETH/USDT:USDT",
-    "Solana (SOL)": "SOL/USDT:USDT",
-    "Ripple (XRP)": "XRP/USDT:USDT",
-    "Cardano (ADA)": "ADA/USDT:USDT",
-    "Litecoin (LTC)": "LTC/USDT:USDT",
+    "Bitcoin (BTC)": "BTCUSDT",
+    "Ethereum (ETH)": "ETHUSDT",
+    "Solana (SOL)": "SOLUSDT",
+    "Ripple (XRP)": "XRPUSDT",
+    "Cardano (ADA)": "ADAUSDT",
+    "Litecoin (LTC)": "LTCUSDT",
 }
 
 if "historico_global" not in st.session_state:
@@ -96,21 +96,37 @@ if "historico_global" not in st.session_state:
 if "cooldown_ativos" not in st.session_state:
   st.session_state.cooldown_ativos = {}
 
-# Inicializa a exchange CCXT para Binance Futures sem precisar de chaves de API (apenas dados públicos)
-exchange = ccxt.binance(
-    {
-        "options": {"defaultType": "future"},
-        "enableRateLimit": True,
-    }
-)
-
 
 @st.cache_data(ttl=30)
-def get_binance_ccxt_data(symbol, timeframe):
+def get_binance_futures_data(symbol, interval):
+  url = f"https://fapi.binance.com/fapi/v1/klines?symbol={symbol}&interval={interval}&limit=100"
+  headers = {
+      "User-Agent": (
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML,"
+          " like Gecko) Chrome/120.0.0.0 Safari/537.36"
+      )
+  }
   try:
-    ohlcv = exchange.fetch_ohlcv(symbol, timeframe=timeframe, limit=100)
+    response = requests.get(url, headers=headers, timeout=10)
+    if response.status_code != 200:
+      return None
+    data = response.json()
     df = pd.DataFrame(
-        ohlcv, columns=["timestamp", "open", "high", "low", "close", "volume"]
+        data,
+        columns=[
+            "timestamp",
+            "open",
+            "high",
+            "low",
+            "close",
+            "volume",
+            "close_time",
+            "qav",
+            "num_trades",
+            "taker_buy_base",
+            "taker_buy_quote",
+            "ignore",
+        ],
     )
     df["data_formatada"] = pd.to_datetime(df["timestamp"], unit="ms").dt.strftime(
         "%d/%m %H:%M"
@@ -188,8 +204,8 @@ for idx_linha, linha in enumerate(linhas_ativos):
   colunas_ui = st.columns(3)
   for i, (nome_amigavel, symbol) in enumerate(linha):
     with colunas_ui[i]:
-      df_tf = get_binance_ccxt_data(symbol, timeframe_escolhido)
-      df_1h = get_binance_ccxt_data(symbol, "1h")
+      df_tf = get_binance_futures_data(symbol, timeframe_escolhido)
+      df_1h = get_binance_futures_data(symbol, "1h")
 
       if (
           df_tf is not None
@@ -434,6 +450,7 @@ if st.session_state.historico_global:
   derrotas = len(
       [
           x
+          for x.get("Status / Simulação", "")
           for x in st.session_state.historico_global
           if "STOP LOSS" in x["Status / Simulação"]
       ]
