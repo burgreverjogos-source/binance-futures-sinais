@@ -450,7 +450,6 @@ if st.session_state.historico_global:
   derrotas = len(
       [
           x
-          for x.get("Status / Simulação", "")
           for x in st.session_state.historico_global
           if "STOP LOSS" in x["Status / Simulação"]
       ]
