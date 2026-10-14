@@ -1,7 +1,7 @@
 import time
+import ccxt
 import pandas as pd
 import plotly.graph_objects as go
-import requests
 import streamlit as st
 from ta.momentum import RSIIndicator
 from ta.trend import EMAIndicator
@@ -80,14 +80,14 @@ else:  # Moderado
 
 st.markdown("---")
 
-# 6 Ativos consolidados com os pares oficiais da Binance Futures
+# 6 Ativos consolidados com os pares oficiais da Binance Futures via CCXT
 COINS = {
-    "Bitcoin (BTC)": "BTCUSDT",
-    "Ethereum (ETH)": "ETHUSDT",
-    "Solana (SOL)": "SOLUSDT",
-    "Ripple (XRP)": "XRPUSDT",
-    "Cardano (ADA)": "ADAUSDT",
-    "Litecoin (LTC)": "LTCUSDT",
+    "Bitcoin (BTC)": "BTC/USDT:USDT",
+    "Ethereum (ETH)": "ETH/USDT:USDT",
+    "Solana (SOL)": "SOL/USDT:USDT",
+    "Ripple (XRP)": "XRP/USDT:USDT",
+    "Cardano (ADA)": "ADA/USDT:USDT",
+    "Litecoin (LTC)": "LTC/USDT:USDT",
 }
 
 if "historico_global" not in st.session_state:
@@ -96,29 +96,21 @@ if "historico_global" not in st.session_state:
 if "cooldown_ativos" not in st.session_state:
   st.session_state.cooldown_ativos = {}
 
+# Inicializa a exchange CCXT para Binance Futures sem precisar de chaves de API (apenas dados públicos)
+exchange = ccxt.binance(
+    {
+        "options": {"defaultType": "future"},
+        "enableRateLimit": True,
+    }
+)
+
 
 @st.cache_data(ttl=30)
-def get_binance_data(symbol, interval):
-  url = f"https://fapi.binance.com/fapi/v1/klines?symbol={symbol}&interval={interval}&limit=100"
+def get_binance_ccxt_data(symbol, timeframe):
   try:
-    response = requests.get(url, timeout=5)
-    data = response.json()
+    ohlcv = exchange.fetch_ohlcv(symbol, timeframe=timeframe, limit=100)
     df = pd.DataFrame(
-        data,
-        columns=[
-            "timestamp",
-            "open",
-            "high",
-            "low",
-            "close",
-            "volume",
-            "close_time",
-            "qav",
-            "num_trades",
-            "taker_buy_base",
-            "taker_buy_quote",
-            "ignore",
-        ],
+        ohlcv, columns=["timestamp", "open", "high", "low", "close", "volume"]
     )
     df["data_formatada"] = pd.to_datetime(df["timestamp"], unit="ms").dt.strftime(
         "%d/%m %H:%M"
@@ -164,7 +156,6 @@ def analisar_mercado_multi_timeframe(df_tf, df_1h, rsi_c_max, rsi_v_min):
   sinal = "AGUARDAR"
   cor = "gray"
 
-  # Filtro adaptativo de acordo com o perfil selecionado
   if (
       tendencia_macro_alta
       and ema9 > ema21
@@ -197,8 +188,8 @@ for idx_linha, linha in enumerate(linhas_ativos):
   colunas_ui = st.columns(3)
   for i, (nome_amigavel, symbol) in enumerate(linha):
     with colunas_ui[i]:
-      df_tf = get_binance_data(symbol, timeframe_escolhido)
-      df_1h = get_binance_data(symbol, "1h")
+      df_tf = get_binance_ccxt_data(symbol, timeframe_escolhido)
+      df_1h = get_binance_ccxt_data(symbol, "1h")
 
       if (
           df_tf is not None
@@ -375,7 +366,7 @@ for idx_linha, linha in enumerate(linhas_ativos):
           )
 
       else:
-        st.error(f"Erro ao carregar {nome_amigavel}")
+        st.error(f"Erro ao carregar dados de {nome_amigavel}")
 
   if idx_linha == 0:
     st.markdown("<div style='margin-bottom: 15px;'></div>", unsafe_allow_html=True)
@@ -461,7 +452,7 @@ if st.session_state.historico_global:
       label="📥 Baixar Histórico em CSV",
       data=csv_data,
       file_name=f"historico_sinais_{pd.Timestamp.now().strftime('%Y%m%d_%H%M')}.csv",
-      mime="text/css",
+      mime="text/csv",
   )
 
   df_para_exibir = []
