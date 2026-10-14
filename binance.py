@@ -31,7 +31,7 @@ st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 st.title("🚀 Crypto Futures - Painel de Sinais Institucional")
 
 # 2. Painel de Configuração Limpo (Sem poluição visual)
-st.markdown("### ⚙️ Painel de Configuração do Robô")
+st.markdown("### ⚙️ Painel de Configuração")
 col_cfg1, col_cfg2 = st.columns([3, 3])
 
 with col_cfg1:
