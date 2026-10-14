@@ -6,20 +6,18 @@ from ta.momentum import RSIIndicator
 from ta.trend import EMAIndicator
 import yfinance as yf
 
-# 1. Configuração da Página e Ocultação de Elementos do Streamlit (Modo Produção)
+# 1. Configuração da Página
 st.set_page_config(
-    page_title="Crypto Futures - Painel de Sinais",
+    page_title="Crypto Futures - Painel de Sinais Institucional",
     page_icon="🚀",
     layout="wide",
 )
 
-# Estilo CSS customizado para remover o menu superior (Stop, Share, GitHub, 3 pontinhos) e o rodapé "Manage app"
+# Mantém o cabeçalho e menu limpos, mas preserva a barra lateral e os controles essenciais
 hide_streamlit_style = """
     <style>
-    #MainMenu {visibility: hidden;}
-    header {visibility: hidden;}
+    #MainMenu {visibility: visible;}
     footer {visibility: hidden;}
-    .stApp > header {visibility: hidden;}
     .viewerBadge_container__1QSob {visibility: hidden !important;}
     </style>
 """
@@ -468,6 +466,6 @@ else:
       " sinal..."
   )
 
-# Ciclo automático de atualização a cada 30 segundos mantendo o painel rodando
+# Mantém o painel rodando e atualizando automaticamente em loop a cada 30 segundos
 time.sleep(30)
 st.rerun()
