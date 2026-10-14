@@ -31,7 +31,7 @@ hide_streamlit_style = """
 st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 
 # Título Fixo e Definitivo
-st.title("🚀 Crypto Futures - Painel de Sinais Institucional")
+st.title("🚀 Crypto Futures - Painel de Sinais")
 
 # 2. Painel de Configuração Limpo
 st.markdown("### ⚙️ Painel de Configuração do Robô")
