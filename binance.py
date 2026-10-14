@@ -1,14 +1,14 @@
 import time
 import pandas as pd
 import plotly.graph_objects as go
+import requests
 import streamlit as st
 from ta.momentum import RSIIndicator
 from ta.trend import EMAIndicator
-import yfinance as yf
 
 # 1. Configuração da Página
 st.set_page_config(
-    page_title="Crypto Futures - Painel de Sinais",
+    page_title="Crypto Futures - Painel de Sinais Institucional",
     page_icon="🚀",
     layout="wide",
 )
@@ -31,9 +31,9 @@ hide_streamlit_style = """
 st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 
 # Título Fixo e Definitivo
-st.title("🚀 Crypto Futures - Painel de Sinais")
+st.title("🚀 Crypto Futures - Painel de Sinais Institucional")
 
-# 2. Painel de Configuração Limpo
+# 2. Painel de Configuração Limpo (Com 3 Perfis)
 st.markdown("### ⚙️ Painel de Configuração do Robô")
 col_cfg1, col_cfg2 = st.columns([3, 3])
 
@@ -41,8 +41,9 @@ with col_cfg1:
   modo_operacao = st.selectbox(
       "📊 Perfil de Estratégia:",
       [
-          "Moderado / Day Trade",
-          "Conservador / Swing",
+          "Agressivo / Scalp (Alvo: 0.8% | Stop: 0.3% | 5x)",
+          "Moderado / Day Trade (Alvo: 1.2% | Stop: 0.4% | 3x)",
+          "Conservador / Swing (Alvo: 1.8% | Stop: 0.5% | 2x)",
       ],
   )
 
@@ -55,27 +56,38 @@ with col_cfg2:
 
 CUSTO_TAXA_ESTIMADO_PCT = 0.25
 
-if "Conservador" in modo_operacao:
+if "Agressivo" in modo_operacao:
+  TAKE_PROFIT_PCT = 0.8
+  STOP_LOSS_PCT = 0.3
+  ALAVANCAGEM = "5x"
+  MULT_LEV = 5
+  RSI_COMPRA_MAX = 52
+  RSI_VENDA_MIN = 48
+elif "Conservador" in modo_operacao:
   TAKE_PROFIT_PCT = 1.8
   STOP_LOSS_PCT = 0.5
   ALAVANCAGEM = "2x"
   MULT_LEV = 2
-else:
+  RSI_COMPRA_MAX = 45
+  RSI_VENDA_MIN = 55
+else:  # Moderado
   TAKE_PROFIT_PCT = 1.2
   STOP_LOSS_PCT = 0.4
   ALAVANCAGEM = "3x"
   MULT_LEV = 3
+  RSI_COMPRA_MAX = 48
+  RSI_VENDA_MIN = 52
 
 st.markdown("---")
 
-# 6 Ativos consolidados organizados para o grid 3x2
+# 6 Ativos consolidados com os pares oficiais da Binance Futures
 COINS = {
-    "Bitcoin (BTC)": "BTC-USD",
-    "Ethereum (ETH)": "ETH-USD",
-    "Solana (SOL)": "SOL-USD",
-    "Ripple (XRP)": "XRP-USD",
-    "Cardano (ADA)": "ADA-USD",
-    "Litecoin (LTC)": "LTC-USD",
+    "Bitcoin (BTC)": "BTCUSDT",
+    "Ethereum (ETH)": "ETHUSDT",
+    "Solana (SOL)": "SOLUSDT",
+    "Ripple (XRP)": "XRPUSDT",
+    "Cardano (ADA)": "ADAUSDT",
+    "Litecoin (LTC)": "LTCUSDT",
 }
 
 if "historico_global" not in st.session_state:
@@ -86,46 +98,41 @@ if "cooldown_ativos" not in st.session_state:
 
 
 @st.cache_data(ttl=30)
-def get_market_data(ticker, interval):
-  yf_interval_map = {"15m": "15m", "1h": "60m", "4h": "60m"}
-  period_map = {"15m": "5d", "1h": "1mo", "4h": "2mo"}
-
-  intervalo = yf_interval_map.get(interval, "15m")
-  periodo = period_map.get(interval, "5d")
-
+def get_binance_data(symbol, interval):
+  url = f"https://fapi.binance.com/fapi/v1/klines?symbol={symbol}&interval={interval}&limit=100"
   try:
-    df = yf.download(
-        ticker, period=periodo, interval=intervalo, progress=False
+    response = requests.get(url, timeout=5)
+    data = response.json()
+    df = pd.DataFrame(
+        data,
+        columns=[
+            "timestamp",
+            "open",
+            "high",
+            "low",
+            "close",
+            "volume",
+            "close_time",
+            "qav",
+            "num_trades",
+            "taker_buy_base",
+            "taker_buy_quote",
+            "ignore",
+        ],
     )
-    if df.empty:
-      return None
-
-    if isinstance(df.columns, pd.MultiIndex):
-      df.columns = df.columns.get_level_values(0)
-
-    df = df.reset_index()
-
-    col_data = (
-        "Datetime"
-        if "Datetime" in df.columns
-        else ("Date" if "Date" in df.columns else df.columns[0])
-    )
-
-    df["data_formatada"] = pd.to_datetime(df[col_data]).dt.strftime(
+    df["data_formatada"] = pd.to_datetime(df["timestamp"], unit="ms").dt.strftime(
         "%d/%m %H:%M"
     )
-    df["close"] = df["Close"].astype(float)
-    df["high"] = df["High"].astype(float)
-    df["low"] = df["Low"].astype(float)
-    df["volume"] = df["Volume"].astype(float)
-
-    df = df.tail(100).copy()
+    df["close"] = df["close"].astype(float)
+    df["high"] = df["high"].astype(float)
+    df["low"] = df["low"].astype(float)
+    df["volume"] = df["volume"].astype(float)
     return df
   except Exception as e:
     return None
 
 
-def analisar_mercado_multi_timeframe(df_tf, df_1h):
+def analisar_mercado_multi_timeframe(df_tf, df_1h, rsi_c_max, rsi_v_min):
   ema20_1h = EMAIndicator(close=df_1h["close"], window=20).ema_indicator()
   ema50_1h = EMAIndicator(close=df_1h["close"], window=50).ema_indicator()
   tendencia_macro_alta = (
@@ -157,11 +164,12 @@ def analisar_mercado_multi_timeframe(df_tf, df_1h):
   sinal = "AGUARDAR"
   cor = "gray"
 
+  # Filtro adaptativo de acordo com o perfil selecionado
   if (
       tendencia_macro_alta
       and ema9 > ema21
-      and ultimo_rsi < 48
-      and vol_atual > (vol_medio * 0.8)
+      and ultimo_rsi < rsi_c_max
+      and vol_atual > (vol_medio * 0.7)
   ):
     sinal = "🟢 COMPRA"
     cor = "green"
@@ -169,8 +177,8 @@ def analisar_mercado_multi_timeframe(df_tf, df_1h):
   elif (
       tendencia_macro_baixa
       and ema9 < ema21
-      and ultimo_rsi > 52
-      and vol_atual > (vol_medio * 0.8)
+      and ultimo_rsi > rsi_v_min
+      and vol_atual > (vol_medio * 0.7)
   ):
     sinal = "🔴 VENDA"
     cor = "red"
@@ -187,10 +195,10 @@ linhas_ativos = [moedas_lista[:3], moedas_lista[3:]]
 
 for idx_linha, linha in enumerate(linhas_ativos):
   colunas_ui = st.columns(3)
-  for i, (nome_amigavel, ticker) in enumerate(linha):
+  for i, (nome_amigavel, symbol) in enumerate(linha):
     with colunas_ui[i]:
-      df_tf = get_market_data(ticker, timeframe_escolhido)
-      df_1h = get_market_data(ticker, "1h")
+      df_tf = get_binance_data(symbol, timeframe_escolhido)
+      df_1h = get_binance_data(symbol, "1h")
 
       if (
           df_tf is not None
@@ -198,7 +206,9 @@ for idx_linha, linha in enumerate(linhas_ativos):
           and df_1h is not None
           and not df_1h.empty
       ):
-        preco, rsi, sinal, cor = analisar_mercado_multi_timeframe(df_tf, df_1h)
+        preco, rsi, sinal, cor = analisar_mercado_multi_timeframe(
+            df_tf, df_1h, RSI_COMPRA_MAX, RSI_VENDA_MIN
+        )
         precos_atuais_mercado[nome_amigavel] = preco
 
         # Cores base do gráfico
@@ -211,7 +221,7 @@ for idx_linha, linha in enumerate(linhas_ativos):
         else:
           cor_hex = (
               "#29b6f6"
-              if "SOL" in ticker or "XRP" in ticker or "ADA" in ticker
+              if "SOL" in symbol or "XRP" in symbol or "ADA" in symbol
               else "#ab47bc"
           )
           fill_color = "rgba(41, 182, 246, 0.12)"
@@ -321,7 +331,7 @@ for idx_linha, linha in enumerate(linhas_ativos):
             hovermode="x unified",
         )
 
-        # Configuração rigorosa para bloquear zoom, duplo clique, pan e qualquer interação indesejada
+        # Gráfico estático (sem zoom/duplo clique, apenas tooltip de preço e horário)
         st.plotly_chart(
             fig,
             use_container_width=True,
@@ -378,7 +388,7 @@ for item in st.session_state.historico_global:
       preco_entrada = item["Preço Entrada"]
       preco_atual = precos_atuais_mercado[ativo]
       tipo = item["Tipo"]
-      lev_num = 2 if "2x" in item["Alavancagem"] else 3
+      lev_num = MULT_LEV
 
       if "COMPRA" in tipo:
         variacao_ativo_pct = (preco_atual - preco_entrada) / preco_entrada * 100
@@ -451,7 +461,7 @@ if st.session_state.historico_global:
       label="📥 Baixar Histórico em CSV",
       data=csv_data,
       file_name=f"historico_sinais_{pd.Timestamp.now().strftime('%Y%m%d_%H%M')}.csv",
-      mime="text/csv",
+      mime="text/css",
   )
 
   df_para_exibir = []
