@@ -7,7 +7,7 @@ from ta.momentum import RSIIndicator
 from ta.trend import EMAIndicator
 
 st.set_page_config(
-    page_title="Crypto Futures - Painel de Sinais",
+    page_title="Crypto Futures - Painel de Sinais Institucional",
     page_icon="🚀",
     layout="wide",
 )
@@ -67,11 +67,8 @@ if "cooldown_ativos" not in st.session_state:
 
 @st.cache_data(ttl=30)
 def get_market_data(symbol, interval):
-  # Mapeando timeframes para o formato da Bybit API Pública
-  tf_map = {"15m": "15", "1h": "60", "4h": "240"}
-  bybit_interval = tf_map.get(interval, "15")
-
-  url = f"https://api.bybit.com/v5/market/kline?category=linear&symbol={symbol}&interval={bybit_interval}&limit=100"
+  # Utilizando a API pública Spot da Binance (totalmente livre de bloqueio geográfico em nuvem)
+  url = f"https://api.binance.com/api/v3/klines?symbol={symbol}&interval={interval}&limit=100"
   headers = {
       "User-Agent": (
           "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
@@ -81,19 +78,12 @@ def get_market_data(symbol, interval):
     response = requests.get(url, headers=headers, timeout=10)
     if response.status_code != 200:
       return None
-    res_json = response.json()
-    if res_json.get("retCode") != 0:
+    data = response.json()
+    if not isinstance(data, list):
       return None
-
-    list_data = res_json.get("result", {}).get("list", [])
-    if not list_data:
-      return None
-
-    # A Bybit retorna do mais recente para o mais antigo, invertemos para cronológico
-    list_data.reverse()
 
     df = pd.DataFrame(
-        list_data,
+        data,
         columns=[
             "timestamp",
             "open",
@@ -101,10 +91,14 @@ def get_market_data(symbol, interval):
             "low",
             "close",
             "volume",
-            "turnover",
+            "close_time",
+            "qav",
+            "num_trades",
+            "taker_buy_base",
+            "taker_buy_quote",
+            "ignore",
         ],
     )
-    df["timestamp"] = df["timestamp"].astype(int)
     df["data_formatada"] = pd.to_datetime(df["timestamp"], unit="ms").dt.strftime(
         "%d/%m %H:%M"
     )
