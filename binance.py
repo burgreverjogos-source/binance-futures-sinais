@@ -8,7 +8,7 @@ import yfinance as yf
 
 # 1. Configuração da Página
 st.set_page_config(
-    page_title="Crypto Futures - Painel de Sinais",
+    page_title="Crypto Futures - Painel de Sinais Institucional",
     page_icon="🚀",
     layout="wide",
 )
@@ -34,7 +34,7 @@ st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 st.title("🚀 Crypto Futures - Painel de Sinais Institucional")
 
 # 2. Painel de Configuração Limpo
-st.markdown("### ⚙️ Painel de Configuração")
+st.markdown("### ⚙️ Painel de Configuração do Robô")
 col_cfg1, col_cfg2 = st.columns([3, 3])
 
 with col_cfg1:
