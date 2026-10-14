@@ -13,24 +13,11 @@ st.set_page_config(
     layout="wide",
 )
 
-# Estilo CSS para garantir que cada Card fique 100% unificado e bem espaçado
-st.markdown(
-    """
-    <style>
-    .stPlotlyChart {
-        margin-top: -10px !important;
-        margin-bottom: 25px !important;
-    }
-    </style>
-""",
-    unsafe_allow_html=True,
-)
-
 # Título Fixo e Definitivo
 st.title("🚀 Binance Futures - Painel de Sinais")
 
 # 2. Barra Lateral (Configurações)
-st.sidebar.header("⚙️ Configurações")
+st.sidebar.header("⚙️ Configurações do Robô")
 
 modo_operacao = st.sidebar.selectbox(
     "📊 Perfil de Estratégia:",
@@ -84,9 +71,17 @@ if "cooldown_ativos" not in st.session_state:
 
 @st.cache_data(ttl=30)
 def get_binance_data(symbol, interval):
+  # Adicionando headers simulando um navegador para evitar bloqueios na nuvem
   url = f"https://fapi.binance.com/fapi/v1/klines?symbol={symbol}&interval={interval}&limit=100"
+  headers = {
+      "User-Agent": (
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+      )
+  }
   try:
-    response = requests.get(url, timeout=5)
+    response = requests.get(url, headers=headers, timeout=10)
+    if response.status_code != 200:
+      return None
     data = response.json()
     df = pd.DataFrame(
         data,
@@ -193,54 +188,73 @@ for idx_linha, linha in enumerate(linhas_ativos):
         preco, rsi, sinal, cor = analisar_mercado_multi_timeframe(df_tf, df_1h)
         precos_atuais_mercado[nome_amigavel] = preco
 
-        # Cores base do gráfico
+        # Cores base do gráfico adaptadas
         if cor == "green":
-          cor_hex = "#00ffcc"
-          fill_color = "rgba(0, 255, 204, 0.15)"
+          cor_hex = "#00b0ff" if st.get_option("theme.base") == "light" else "#00ffcc"
+          fill_color = (
+              "rgba(0, 176, 255, 0.15)"
+              if st.get_option("theme.base") == "light"
+              else "rgba(0, 255, 204, 0.15)"
+          )
         elif cor == "red":
-          cor_hex = "#ff4d4d"
-          fill_color = "rgba(255, 77, 77, 0.15)"
+          cor_hex = "#ff1744" if st.get_option("theme.base") == "light" else "#ff4d4d"
+          fill_color = (
+              "rgba(255, 23, 68, 0.15)"
+              if st.get_option("theme.base") == "light"
+              else "rgba(255, 77, 77, 0.15)"
+          )
         else:
           cor_hex = (
-              "#29b6f6"
-              if "SOL" in symbol or "XRP" in symbol or "ADA" in symbol
-              else "#ab47bc"
+              "#0288d1"
+              if st.get_option("theme.base") == "light"
+              else "#29b6f6"
           )
-          fill_color = "rgba(41, 182, 246, 0.12)"
+          fill_color = (
+              "rgba(2, 136, 209, 0.12)"
+              if st.get_option("theme.base") == "light"
+              else "rgba(41, 182, 246, 0.12)"
+          )
+
+        # Cores Dinâmicas do Card
+        is_light = st.get_option("theme.base") == "light"
+        bg_card = "#ffffff" if is_light else "#131722"
+        borda_card = "#d1d4dc" if is_light else "#2a2e39"
+        cor_titulo = "#131722" if is_light else "#ffffff"
+        cor_preco = "#000000" if is_light else "#ffffff"
 
         # Indicador Badge do RSI
         if rsi < 30:
           rsi_badge = (
-              f"<span style='background-color: #2e1a0f; color: #ffb74d; border:"
-              " 1px solid #ffb74d; padding: 2px 6px; border-radius: 10px;"
+              f"<span style='background-color: {'#ffe0b2' if is_light else '#2e1a0f'}; color: {'#e65100' if is_light else '#ffb74d'}; border:"
+              f" 1px solid {'#ffb74d'}; padding: 2px 6px; border-radius: 10px;"
               f" font-weight: bold; font-size: 11px;'>RSI: {rsi:.1f}"
               " (Oversold)</span>"
           )
         elif rsi < 45:
           rsi_badge = (
-              f"<span style='background-color: #1a2332; color: #64b5f6; border:"
-              " 1px solid #64b5f6; padding: 2px 6px; border-radius: 10px;"
+              f"<span style='background-color: {'#e3f2fd' if is_light else '#1a2332'}; color: {'#1565c0' if is_light else '#64b5f6'}; border:"
+              f" 1px solid {'#64b5f6'}; padding: 2px 6px; border-radius: 10px;"
               f" font-weight: bold; font-size: 11px;'>RSI: {rsi:.1f}"
               " (Baixo)</span>"
           )
         elif rsi > 70:
           rsi_badge = (
-              f"<span style='background-color: #3b0d0d; color: #ff4d4d; border:"
-              " 1px solid #ff4d4d; padding: 2px 6px; border-radius: 10px;"
+              f"<span style='background-color: {'#ffebee' if is_light else '#3b0d0d'}; color: {'#c62828' if is_light else '#ff4d4d'}; border:"
+              f" 1px solid {'#ff4d4d'}; padding: 2px 6px; border-radius: 10px;"
               f" font-weight: bold; font-size: 11px;'>RSI: {rsi:.1f}"
               " (Overbought)</span>"
           )
         elif rsi > 55:
           rsi_badge = (
-              f"<span style='background-color: #311818; color: #ff8a80; border:"
-              " 1px solid #ff8a80; padding: 2px 6px; border-radius: 10px;"
+              f"<span style='background-color: {'#fce4ec' if is_light else '#311818'}; color: {'#ad1457' if is_light else '#ff8a80'}; border:"
+              f" 1px solid {'#ff8a80'}; padding: 2px 6px; border-radius: 10px;"
               f" font-weight: bold; font-size: 11px;'>RSI: {rsi:.1f}"
               " (Alto)</span>"
           )
         else:
           rsi_badge = (
-              f"<span style='background-color: #21252d; color: #b2b5be; border:"
-              " 1px solid #363c4e; padding: 2px 6px; border-radius: 10px;"
+              f"<span style='background-color: {'#f1f3f6' if is_light else '#21252d'}; color: {'#59606d' if is_light else '#b2b5be'}; border:"
+              f" 1px solid {'#363c4e'}; padding: 2px 6px; border-radius: 10px;"
               f" font-weight: bold; font-size: 11px;'>RSI: {rsi:.1f}"
               " (Neutro)</span>"
           )
@@ -249,16 +263,15 @@ for idx_linha, linha in enumerate(linhas_ativos):
             f"<span style='font-size: 12px; color: {cor_hex}; font-weight:"
             f" bold;'>{sinal}</span>"
             if sinal != "AGUARDAR"
-            else f"<span style='font-size: 11px; color: #666;'>AGUARDAR</span>"
+            else f"<span style='font-size: 11px; color: {'#888' if is_light else '#666'};'>AGUARDAR</span>"
         )
 
-        # Cabeçalho do Card unificado com borda superior
         st.markdown(
             f"""
-                <div style="background-color: #131722; padding: 12px 14px; border-radius: 8px 8px 0px 0px; border: 1px solid #2a2e39; border-bottom: none;">
+                <div style="background-color: {bg_card}; padding: 12px 14px 4px 14px; border-radius: 8px 8px 0px 0px; border: 1px solid {borda_card}; border-bottom: none;">
                     <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <span style="font-weight: bold; font-size: 15px; color: #ffffff;">{nome_amigavel}</span>
-                        <span style="color: {cor_hex}; font-weight: bold; font-size: 15px;">$ {preco:,.2f}</span>
+                        <span style="font-weight: bold; font-size: 15px; color: {cor_titulo};">{nome_amigavel}</span>
+                        <span style="color: {cor_preco}; font-weight: bold; font-size: 15px;">$ {preco:,.2f}</span>
                     </div>
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
                         <div>{rsi_badge}</div>
@@ -269,7 +282,6 @@ for idx_linha, linha in enumerate(linhas_ativos):
             unsafe_allow_html=True,
         )
 
-        # Preparar dados do gráfico
         df_plot = df_tf.tail(30).copy()
         min_p = df_plot["close"].min()
         max_p = df_plot["close"].max()
@@ -292,9 +304,12 @@ for idx_linha, linha in enumerate(linhas_ativos):
             )
         )
 
+        bg_plot = "#ffffff" if is_light else "#131722"
+        grid_color = "rgba(0,0,0,0.05)" if is_light else "rgba(255,255,255,0.03)"
+
         fig.update_layout(
-            height=120,
-            margin=dict(l=0, r=0, t=0, b=0),
+            height=110,
+            margin=dict(l=0, r=0, t=0, b=5),
             xaxis=dict(
                 showticklabels=False,
                 showgrid=False,
@@ -305,20 +320,26 @@ for idx_linha, linha in enumerate(linhas_ativos):
                 range=[min_p - padding, max_p + padding],
                 showticklabels=False,
                 showgrid=True,
-                gridcolor="rgba(255,255,255,0.03)",
+                gridcolor=grid_color,
                 zeroline=False,
             ),
-            paper_bgcolor="#131722",
-            plot_bgcolor="#131722",
+            paper_bgcolor=bg_plot,
+            plot_bgcolor=bg_plot,
             showlegend=False,
             hovermode="closest",
         )
 
-        # Gráfico abraçado pela mesma borda do card
         st.plotly_chart(
             fig,
             use_container_width=True,
             config={"displayModeBar": False},
+        )
+
+        st.markdown(
+            f"""
+                <div style="background-color: {bg_card}; padding: 0px 0px 8px 0px; border-radius: 0px 0px 8px 8px; border: 1px solid {borda_card}; border-top: none; margin-bottom: 20px;"></div>
+                """,
+            unsafe_allow_html=True,
         )
 
         ja_tem_posicao_aberta = any(
@@ -354,7 +375,6 @@ for idx_linha, linha in enumerate(linhas_ativos):
       else:
         st.error(f"Erro ao carregar {nome_amigavel}")
 
-  # Adiciona uma separação vertical visível entre a primeira e a segunda linha
   if idx_linha == 0:
     st.markdown("<div style='margin-bottom: 15px;'></div>", unsafe_allow_html=True)
 
