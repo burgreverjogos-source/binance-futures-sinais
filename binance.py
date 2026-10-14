@@ -1,10 +1,10 @@
 import time
 import pandas as pd
 import plotly.graph_objects as go
-import requests
 import streamlit as st
 from ta.momentum import RSIIndicator
 from ta.trend import EMAIndicator
+import yfinance as yf
 
 st.set_page_config(
     page_title="Crypto Futures - Painel de Sinais Institucional",
@@ -49,13 +49,14 @@ st.sidebar.caption(
     f" Alavancagem: **{ALAVANCAGEM}**"
 )
 
+# Mapeamento para os tickers correspondentes no Yahoo Finance
 COINS = {
-    "Bitcoin (BTC)": "BTCUSDT",
-    "Ethereum (ETH)": "ETHUSDT",
-    "Solana (SOL)": "SOLUSDT",
-    "Ripple (XRP)": "XRPUSDT",
-    "Cardano (ADA)": "ADAUSDT",
-    "Litecoin (LTC)": "LTCUSDT",
+    "Bitcoin (BTC)": "BTC-USD",
+    "Ethereum (ETH)": "ETH-USD",
+    "Solana (SOL)": "SOL-USD",
+    "Ripple (XRP)": "XRP-USD",
+    "Cardano (ADA)": "ADA-USD",
+    "Litecoin (LTC)": "LTC-USD",
 }
 
 if "historico_global" not in st.session_state:
@@ -66,46 +67,45 @@ if "cooldown_ativos" not in st.session_state:
 
 
 @st.cache_data(ttl=30)
-def get_market_data(symbol, interval):
-  # Utilizando a API pública Spot da Binance (totalmente livre de bloqueio geográfico em nuvem)
-  url = f"https://api.binance.com/api/v3/klines?symbol={symbol}&interval={interval}&limit=100"
-  headers = {
-      "User-Agent": (
-          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
-      )
-  }
+def get_market_data(ticker, interval):
+  # Mapeamento de timeframes para o Yahoo Finance
+  # 15m usa intervalo de 15m com período curto, 1h e 4h usam intervalos maiores
+  yf_interval_map = {"15m": "15m", "1h": "60m", "4h": "60m"}
+  period_map = {"15m": "5d", "1h": "1mo", "4h": "2mo"}
+
+  intervalo = yf_interval_map.get(interval, "15m")
+  periodo = period_map.get(interval, "5d")
+
   try:
-    response = requests.get(url, headers=headers, timeout=10)
-    if response.status_code != 200:
-      return None
-    data = response.json()
-    if not isinstance(data, list):
+    df = yf.download(
+        ticker, period=periodo, interval=intervalo, progress=False
+    )
+    if df.empty:
       return None
 
-    df = pd.DataFrame(
-        data,
-        columns=[
-            "timestamp",
-            "open",
-            "high",
-            "low",
-            "close",
-            "volume",
-            "close_time",
-            "qav",
-            "num_trades",
-            "taker_buy_base",
-            "taker_buy_quote",
-            "ignore",
-        ],
+    # Tratamento para índices multi-nível do yfinance recente
+    if isinstance(df.columns, pd.MultiIndex):
+      df.columns = df.columns.get_level_values(0)
+
+    df = df.reset_index()
+
+    # Identificar nome correto das colunas de data/hora
+    col_data = (
+        "Datetime"
+        if "Datetime" in df.columns
+        else ("Date" if "Date" in df.columns else df.columns[0])
     )
-    df["data_formatada"] = pd.to_datetime(df["timestamp"], unit="ms").dt.strftime(
+
+    df["data_formatada"] = pd.to_datetime(df[col_data]).dt.strftime(
         "%d/%m %H:%M"
     )
-    df["close"] = df["close"].astype(float)
-    df["high"] = df["high"].astype(float)
-    df["low"] = df["low"].astype(float)
-    df["volume"] = df["volume"].astype(float)
+    df["close"] = df["Close"].astype(float)
+    df["high"] = df["High"].astype(float)
+    df["low"] = df["Low"].astype(float)
+    df["volume"] = df["Volume"].astype(float)
+
+    # Pegar as últimas 100 velas para manter a consistência
+    df = df.tail(100).copy()
     return df
   except Exception as e:
     return None
@@ -172,10 +172,10 @@ linhas_ativos = [moedas_lista[:3], moedas_lista[3:]]
 
 for idx_linha, linha in enumerate(linhas_ativos):
   colunas_ui = st.columns(3)
-  for i, (nome_amigavel, symbol) in enumerate(linha):
+  for i, (nome_amigavel, ticker) in enumerate(linha):
     with colunas_ui[i]:
-      df_tf = get_market_data(symbol, timeframe_escolhido)
-      df_1h = get_market_data(symbol, "1h")
+      df_tf = get_market_data(ticker, timeframe_escolhido)
+      df_1h = get_market_data(ticker, "1h")
 
       if (
           df_tf is not None
