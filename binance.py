@@ -30,8 +30,8 @@ st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 # Título Fixo e Definitivo
 st.title("🚀 Crypto Futures - Painel de Sinais Institucional")
 
-# 2. Painel de Configuração Limpo (Sem poluição visual)
-st.markdown("### ⚙️ Painel de Configuração")
+# 2. Painel de Configuração Limpo
+st.markdown("### ⚙️ Painel de Configuração do Robô")
 col_cfg1, col_cfg2 = st.columns([3, 3])
 
 with col_cfg1:
@@ -291,8 +291,8 @@ for idx_linha, linha in enumerate(linhas_ativos):
                 fill="tonexty",
                 fillcolor=fill_color,
                 hovertemplate=(
-                    "<b>Data/Hora</b>: %{x}<br><b>Preço</b>:"
-                    " $%{y:,.2f}<extra></extra>"
+                    "<b>Preço</b>: $%{y:,.2f}<br><b>Data/Hora</b>:"
+                    " %{x}<extra></extra>"
                 ),
             )
         )
@@ -316,13 +316,18 @@ for idx_linha, linha in enumerate(linhas_ativos):
             paper_bgcolor="#131722",
             plot_bgcolor="#131722",
             showlegend=False,
-            hovermode="closest",
+            hovermode="x unified",
         )
 
+        # Configuração para desativar qualquer zoom, pan ou menu interativo extra
         st.plotly_chart(
             fig,
             use_container_width=True,
-            config={"displayModeBar": False},
+            config={
+                "staticPlot": False,
+                "displayModeBar": False,
+                "scrollZoom": False,
+            },
         )
 
         ja_tem_posicao_aberta = any(
@@ -394,7 +399,7 @@ for item in st.session_state.historico_global:
 
 st.markdown("---")
 
-# Seção de Histórico com os parâmetros de Alvo/Stop reposicionados elegantemente ao lado
+# Seção de Histórico com os parâmetros de Alvo/Stop ao lado do título
 col_hist_titulo, col_hist_info = st.columns([3, 3])
 with col_hist_titulo:
   st.subheader("📜 Histórico e Acompanhamento de Sinais")
