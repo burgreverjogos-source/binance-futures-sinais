@@ -6,14 +6,29 @@ from ta.momentum import RSIIndicator
 from ta.trend import EMAIndicator
 import yfinance as yf
 
+# 1. Configuração da Página e Ocultação de Elementos do Streamlit (Modo Produção)
 st.set_page_config(
     page_title="Crypto Futures - Painel de Sinais Institucional",
     page_icon="🚀",
     layout="wide",
 )
 
+# Estilo CSS customizado para remover o menu superior (Stop, Share, GitHub, 3 pontinhos) e o rodapé "Manage app"
+hide_streamlit_style = """
+    <style>
+    #MainMenu {visibility: hidden;}
+    header {visibility: hidden;}
+    footer {visibility: hidden;}
+    .stApp > header {visibility: hidden;}
+    .viewerBadge_container__1QSob {visibility: hidden !important;}
+    </style>
+"""
+st.markdown(hide_streamlit_style, unsafe_allow_html=True)
+
+# Título Fixo e Definitivo
 st.title("🚀 Crypto Futures - Painel de Sinais Institucional")
 
+# 2. Barra Lateral (Configurações)
 st.sidebar.header("⚙️ Configurações do Robô")
 
 modo_operacao = st.sidebar.selectbox(
@@ -49,7 +64,6 @@ st.sidebar.caption(
     f" Alavancagem: **{ALAVANCAGEM}**"
 )
 
-# Mapeamento para os tickers correspondentes no Yahoo Finance
 COINS = {
     "Bitcoin (BTC)": "BTC-USD",
     "Ethereum (ETH)": "ETH-USD",
@@ -68,8 +82,6 @@ if "cooldown_ativos" not in st.session_state:
 
 @st.cache_data(ttl=30)
 def get_market_data(ticker, interval):
-  # Mapeamento de timeframes para o Yahoo Finance
-  # 15m usa intervalo de 15m com período curto, 1h e 4h usam intervalos maiores
   yf_interval_map = {"15m": "15m", "1h": "60m", "4h": "60m"}
   period_map = {"15m": "5d", "1h": "1mo", "4h": "2mo"}
 
@@ -83,13 +95,11 @@ def get_market_data(ticker, interval):
     if df.empty:
       return None
 
-    # Tratamento para índices multi-nível do yfinance recente
     if isinstance(df.columns, pd.MultiIndex):
       df.columns = df.columns.get_level_values(0)
 
     df = df.reset_index()
 
-    # Identificar nome correto das colunas de data/hora
     col_data = (
         "Datetime"
         if "Datetime" in df.columns
@@ -104,7 +114,6 @@ def get_market_data(ticker, interval):
     df["low"] = df["Low"].astype(float)
     df["volume"] = df["Volume"].astype(float)
 
-    # Pegar as últimas 100 velas para manter a consistência
     df = df.tail(100).copy()
     return df
   except Exception as e:
@@ -459,5 +468,6 @@ else:
       " sinal..."
   )
 
+# Ciclo automático de atualização a cada 30 segundos mantendo o painel rodando
 time.sleep(30)
 st.rerun()
