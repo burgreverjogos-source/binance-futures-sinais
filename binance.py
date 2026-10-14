@@ -13,10 +13,10 @@ st.set_page_config(
     layout="wide",
 )
 
-# Mantém o cabeçalho e menu limpos, mas preserva a barra lateral e os controles essenciais
+# CSS cirúrgico: remove APENAS os botões superiores flutuantes (Stop, Share, ícones do topo) e o rodapé, mantendo a barra lateral e o menu hambúrguer intactos
 hide_streamlit_style = """
     <style>
-    #MainMenu {visibility: visible;}
+    header[data-testid="stHeader"] {visibility: hidden;}
     footer {visibility: hidden;}
     .viewerBadge_container__1QSob {visibility: hidden !important;}
     </style>
