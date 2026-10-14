@@ -8,7 +8,7 @@ import yfinance as yf
 
 # 1. Configuração da Página
 st.set_page_config(
-    page_title="Crypto Futures - Painel de Sinais Institucional",
+    page_title="Crypto Futures - Painel de Sinais",
     page_icon="🚀",
     layout="wide",
 )
