@@ -8,17 +8,20 @@ import yfinance as yf
 
 # 1. Configuração da Página
 st.set_page_config(
-    page_title="Crypto Futures - Painel de Sinais Institucional",
+    page_title="Crypto Futures - Painel de Sinais",
     page_icon="🚀",
     layout="wide",
 )
 
-# Estilo CSS para remover a barra superior do Streamlit e alinhar os cards perfeitamente
+# Estilo CSS rigoroso para sumir com o badge/ícone flutuante do celular e limpar o topo
 hide_streamlit_style = """
     <style>
     header {visibility: hidden !important;}
     [data-testid="stToolbar"] {visibility: hidden !important;}
     footer {visibility: hidden !important;}
+    .viewerBadge_container__1QSob {display: none !important; visibility: hidden !important;}
+    .stAppDeployButton {display: none !important; visibility: hidden !important;}
+    iframe[title="streamlitAppBadge"] {display: none !important;}
     .stPlotlyChart {
         margin-top: -10px !important;
         margin-bottom: 25px !important;
@@ -31,7 +34,7 @@ st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 st.title("🚀 Crypto Futures - Painel de Sinais Institucional")
 
 # 2. Painel de Configuração Limpo
-st.markdown("### ⚙️ Painel de Configuração do Robô")
+st.markdown("### ⚙️ Painel de Configuração")
 col_cfg1, col_cfg2 = st.columns([3, 3])
 
 with col_cfg1:
@@ -290,10 +293,7 @@ for idx_linha, linha in enumerate(linhas_ativos):
                 line=dict(color=cor_hex, width=2.5),
                 fill="tonexty",
                 fillcolor=fill_color,
-                hovertemplate=(
-                    "<b>Preço</b>: $%{y:,.2f}<br><b>Data/Hora</b>:"
-                    " %{x}<extra></extra>"
-                ),
+                hovertemplate="<b>Preço</b>: $%{y:,.2f}<br><b>Data/Hora</b>: %{x}<extra></extra>",
             )
         )
 
@@ -305,6 +305,7 @@ for idx_linha, linha in enumerate(linhas_ativos):
                 showgrid=False,
                 zeroline=False,
                 visible=False,
+                fixedrange=True,
             ),
             yaxis=dict(
                 range=[min_p - padding, max_p + padding],
@@ -312,6 +313,7 @@ for idx_linha, linha in enumerate(linhas_ativos):
                 showgrid=True,
                 gridcolor="rgba(255,255,255,0.03)",
                 zeroline=False,
+                fixedrange=True,
             ),
             paper_bgcolor="#131722",
             plot_bgcolor="#131722",
@@ -319,7 +321,7 @@ for idx_linha, linha in enumerate(linhas_ativos):
             hovermode="x unified",
         )
 
-        # Configuração para desativar qualquer zoom, pan ou menu interativo extra
+        # Configuração rigorosa para bloquear zoom, duplo clique, pan e qualquer interação indesejada
         st.plotly_chart(
             fig,
             use_container_width=True,
@@ -327,6 +329,8 @@ for idx_linha, linha in enumerate(linhas_ativos):
                 "staticPlot": False,
                 "displayModeBar": False,
                 "scrollZoom": False,
+                "doubleClick": False,
+                "showTips": False,
             },
         )
 
