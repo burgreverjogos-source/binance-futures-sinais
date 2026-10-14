@@ -80,7 +80,7 @@ else:  # Moderado
 
 st.markdown("---")
 
-# 6 Ativos consolidados com os pares da Binance Spot (liberados na nuvem)
+# 6 Ativos consolidados com os pares oficiais da Binance Futures
 COINS = {
     "Bitcoin (BTC)": "BTCUSDT",
     "Ethereum (ETH)": "ETHUSDT",
@@ -98,17 +98,10 @@ if "cooldown_ativos" not in st.session_state:
 
 
 @st.cache_data(ttl=30)
-def get_binance_spot_data(symbol, interval):
-  # Utilizando a API Spot pública da Binance, que não sofre bloqueio de IP no Streamlit Cloud
-  url = f"https://api.binance.com/api/v3/klines?symbol={symbol}&interval={interval}&limit=100"
-  headers = {
-      "User-Agent": (
-          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML,"
-          " like Gecko) Chrome/120.0.0.0 Safari/537.36"
-      )
-  }
+def get_binance_futures_data(symbol, interval):
+  url = f"https://fapi.binance.com/fapi/v1/klines?symbol={symbol}&interval={interval}&limit=100"
   try:
-    response = requests.get(url, headers=headers, timeout=10)
+    response = requests.get(url, timeout=10)
     if response.status_code != 200:
       return None
     data = response.json()
@@ -205,8 +198,8 @@ for idx_linha, linha in enumerate(linhas_ativos):
   colunas_ui = st.columns(3)
   for i, (nome_amigavel, symbol) in enumerate(linha):
     with colunas_ui[i]:
-      df_tf = get_binance_spot_data(symbol, timeframe_escolhido)
-      df_1h = get_binance_spot_data(symbol, "1h")
+      df_tf = get_binance_futures_data(symbol, timeframe_escolhido)
+      df_1h = get_binance_futures_data(symbol, "1h")
 
       if (
           df_tf is not None
