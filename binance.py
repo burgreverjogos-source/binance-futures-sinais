@@ -13,7 +13,7 @@ st.set_page_config(
     layout="wide",
 )
 
-# Estilo CSS para remover a barra superior do Streamlit e ajustar os gráficos perfeitamente
+# Estilo CSS para remover a barra superior do Streamlit e alinhar os cards perfeitamente
 hide_streamlit_style = """
     <style>
     header {visibility: hidden !important;}
@@ -30,16 +30,16 @@ st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 # Título Fixo e Definitivo
 st.title("🚀 Crypto Futures - Painel de Sinais Institucional")
 
-# 2. Painel de Controle Horizontal (Substitui a barra lateral para evitar conflitos de layout)
+# 2. Painel de Configuração Limpo (Sem poluição visual)
 st.markdown("### ⚙️ Painel de Configuração do Robô")
-col_cfg1, col_cfg2, col_cfg3 = st.columns([2, 2, 2])
+col_cfg1, col_cfg2 = st.columns([3, 3])
 
 with col_cfg1:
   modo_operacao = st.selectbox(
       "📊 Perfil de Estratégia:",
       [
-          "Moderado / Day Trade (Alvo: 1.2% | Stop: 0.4%)",
-          "Conservador / Swing (Alvo: 1.8% | Stop: 0.5%)",
+          "Moderado / Day Trade",
+          "Conservador / Swing",
       ],
   )
 
@@ -62,13 +62,6 @@ else:
   STOP_LOSS_PCT = 0.4
   ALAVANCAGEM = "3x"
   MULT_LEV = 3
-
-with col_cfg3:
-  st.markdown("<br>", unsafe_allow_html=True)
-  st.markdown(
-      f"🎯 Alvo: **+{TAKE_PROFIT_PCT}%** | 🛑 Stop: **-{STOP_LOSS_PCT}%** |"
-      f" ⚡ Alav.: **{ALAVANCAGEM}**"
-  )
 
 st.markdown("---")
 
@@ -400,7 +393,18 @@ for item in st.session_state.historico_global:
         st.session_state.cooldown_ativos[ativo] = time.time() + 1800
 
 st.markdown("---")
-st.subheader("📜 Histórico e Acompanhamento de Sinais")
+
+# Seção de Histórico com os parâmetros de Alvo/Stop reposicionados elegantemente ao lado
+col_hist_titulo, col_hist_info = st.columns([3, 3])
+with col_hist_titulo:
+  st.subheader("📜 Histórico e Acompanhamento de Sinais")
+with col_hist_info:
+  st.markdown(
+      f"<div style='text-align: right; padding-top: 10px; font-size: 14px; color:"
+      f" #b2b5be;'>🎯 Alvo: <b>+{TAKE_PROFIT_PCT}%</b> | 🛑 Stop:"
+      f" <b>-{STOP_LOSS_PCT}%</b> | ⚡ Alav.: <b>{ALAVANCAGEM}</b></div>",
+      unsafe_allow_html=True,
+  )
 
 if st.session_state.historico_global:
   total_trades = len(
