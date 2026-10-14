@@ -13,15 +13,6 @@ st.set_page_config(
     layout="wide",
 )
 
-# Oculta APENAS a barra de ferramentas superior direita (Stop, Share, 3 pontinhos, etc.)
-hide_streamlit_style = """
-    <style>
-    [data-testid="stToolbar"] {visibility: hidden !important;}
-    header {background: transparent !important;}
-    </style>
-"""
-st.markdown(hide_streamlit_style, unsafe_allow_html=True)
-
 # Título Fixo e Definitivo
 st.title("🚀 Crypto Futures - Painel de Sinais Institucional")
 
@@ -267,6 +258,7 @@ for idx_linha, linha in enumerate(linhas_ativos):
             else f"<span style='font-size: 11px; color: {'#888' if is_light else '#666'};'>AGUARDAR</span>"
         )
 
+        # Card superior unificado
         st.markdown(
             f"""
                 <div style="background-color: {bg_card}; padding: 12px 14px 4px 14px; border-radius: 8px 8px 0px 0px; border: 1px solid {borda_card}; border-bottom: none;">
@@ -310,7 +302,7 @@ for idx_linha, linha in enumerate(linhas_ativos):
 
         fig.update_layout(
             height=110,
-            margin=dict(l=0, r=0, t=0, b=5),
+            margin=dict(l=0, r=0, t=0, b=0),
             xaxis=dict(
                 showticklabels=False,
                 showgrid=False,
@@ -336,9 +328,10 @@ for idx_linha, linha in enumerate(linhas_ativos):
             config={"displayModeBar": False},
         )
 
+        # Rodapé do card perfeitamente fechado e sem barras extras
         st.markdown(
             f"""
-                <div style="background-color: {bg_card}; padding: 0px 0px 8px 0px; border-radius: 0px 0px 8px 8px; border: 1px solid {borda_card}; border-top: none; margin-bottom: 20px;"></div>
+                <div style="background-color: {bg_card}; padding: 0px 0px 10px 0px; border-radius: 0px 0px 8px 8px; border: 1px solid {borda_card}; border-top: none; margin-bottom: 20px;"></div>
                 """,
             unsafe_allow_html=True,
         )
@@ -465,6 +458,6 @@ else:
       " sinal..."
   )
 
-# Loop de atualização automática a cada 30 segundos
+# Atualização automática contínua
 time.sleep(30)
 st.rerun()
