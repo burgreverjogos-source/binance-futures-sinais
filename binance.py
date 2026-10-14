@@ -13,25 +13,38 @@ st.set_page_config(
     layout="wide",
 )
 
+# CSS cirúrgico: Oculta completamente a barra superior incômoda do Streamlit (Stop, Share, etc.) mantendo a página limpa
+hide_streamlit_style = """
+    <style>
+    header {visibility: hidden !important;}
+    [data-testid="stToolbar"] {visibility: hidden !important;}
+    footer {visibility: hidden !important;}
+    </style>
+"""
+st.markdown(hide_streamlit_style, unsafe_allow_html=True)
+
 # Título Fixo e Definitivo
 st.title("🚀 Crypto Futures - Painel de Sinais Institucional")
 
-# 2. Barra Lateral (Configurações do Robô)
-st.sidebar.header("⚙️ Configurações do Robô")
+# 2. Barra de Configurações Horizontal (Substitui a barra lateral para evitar conflitos de layout)
+st.markdown("### ⚙️ Painel de Controle do Robô")
+col_cfg1, col_cfg2, col_cfg3 = st.columns([2, 2, 2])
 
-modo_operacao = st.sidebar.selectbox(
-    "📊 Perfil de Estratégia:",
-    [
-        "Moderado / Day Trade (Alvo: 1.2% | Stop: 0.4%)",
-        "Conservador / Swing (Alvo: 1.8% | Stop: 0.5%)",
-    ],
-)
+with col_cfg1:
+  modo_operacao = st.selectbox(
+      "📊 Perfil de Estratégia:",
+      [
+          "Moderado / Day Trade (Alvo: 1.2% | Stop: 0.4%)",
+          "Conservador / Swing (Alvo: 1.8% | Stop: 0.5%)",
+      ],
+  )
 
-timeframe_escolhido = st.sidebar.selectbox(
-    "⏱️ Timeframe das Velas:",
-    ["15m", "1h", "4h"],
-    index=0,
-)
+with col_cfg2:
+  timeframe_escolhido = st.selectbox(
+      "⏱️ Timeframe das Velas:",
+      ["15m", "1h", "4h"],
+      index=0,
+  )
 
 CUSTO_TAXA_ESTIMADO_PCT = 0.25
 
@@ -46,11 +59,14 @@ else:
   ALAVANCAGEM = "3x"
   MULT_LEV = 3
 
-st.sidebar.markdown("---")
-st.sidebar.caption(
-    f"Alvo: **+{TAKE_PROFIT_PCT}%** | Stop: **-{STOP_LOSS_PCT}%** |"
-    f" Alavancagem: **{ALAVANCAGEM}**"
-)
+with col_cfg3:
+  st.markdown("<br>", unsafe_allow_html=True)
+  st.markdown(
+      f"🎯 Alvo: **+{TAKE_PROFIT_PCT}%** | 🛑 Stop: **-{STOP_LOSS_PCT}%** |"
+      f" ⚡ Alav.: **{ALAVANCAGEM}**"
+  )
+
+st.markdown("---")
 
 COINS = {
     "Bitcoin (BTC)": "BTC-USD",
@@ -258,7 +274,6 @@ for idx_linha, linha in enumerate(linhas_ativos):
             else f"<span style='font-size: 11px; color: {'#888' if is_light else '#666'};'>AGUARDAR</span>"
         )
 
-        # Card superior unificado
         st.markdown(
             f"""
                 <div style="background-color: {bg_card}; padding: 12px 14px 4px 14px; border-radius: 8px 8px 0px 0px; border: 1px solid {borda_card}; border-bottom: none;">
@@ -328,7 +343,6 @@ for idx_linha, linha in enumerate(linhas_ativos):
             config={"displayModeBar": False},
         )
 
-        # Rodapé do card perfeitamente fechado e sem barras extras
         st.markdown(
             f"""
                 <div style="background-color: {bg_card}; padding: 0px 0px 10px 0px; border-radius: 0px 0px 8px 8px; border: 1px solid {borda_card}; border-top: none; margin-bottom: 20px;"></div>
@@ -458,6 +472,6 @@ else:
       " sinal..."
   )
 
-# Atualização automática contínua
+# Loop de atualização contínua
 time.sleep(30)
 st.rerun()
