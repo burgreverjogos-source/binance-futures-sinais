@@ -6,12 +6,21 @@ from ta.momentum import RSIIndicator
 from ta.trend import EMAIndicator
 import yfinance as yf
 
-# 1. Configuração da Página (Com padrão nativo seguro para manter todos os menus visíveis)
+# 1. Configuração da Página
 st.set_page_config(
     page_title="Crypto Futures - Painel de Sinais Institucional",
     page_icon="🚀",
     layout="wide",
 )
+
+# Oculta APENAS a barra de ferramentas superior direita (Stop, Share, 3 pontinhos, etc.)
+hide_streamlit_style = """
+    <style>
+    [data-testid="stToolbar"] {visibility: hidden !important;}
+    header {background: transparent !important;}
+    </style>
+"""
+st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 
 # Título Fixo e Definitivo
 st.title("🚀 Crypto Futures - Painel de Sinais Institucional")
@@ -456,6 +465,6 @@ else:
       " sinal..."
   )
 
-# Mantém o painel rodando e atualizando automaticamente em loop a cada 30 segundos
+# Loop de atualização automática a cada 30 segundos
 time.sleep(30)
 st.rerun()
