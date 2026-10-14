@@ -6,27 +6,17 @@ from ta.momentum import RSIIndicator
 from ta.trend import EMAIndicator
 import yfinance as yf
 
-# 1. Configuração da Página
+# 1. Configuração da Página (Com padrão nativo seguro para manter todos os menus visíveis)
 st.set_page_config(
     page_title="Crypto Futures - Painel de Sinais Institucional",
     page_icon="🚀",
     layout="wide",
 )
 
-# CSS cirúrgico: remove APENAS os botões superiores flutuantes (Stop, Share, ícones do topo) e o rodapé, mantendo a barra lateral e o menu hambúrguer intactos
-hide_streamlit_style = """
-    <style>
-    header[data-testid="stHeader"] {visibility: hidden;}
-    footer {visibility: hidden;}
-    .viewerBadge_container__1QSob {visibility: hidden !important;}
-    </style>
-"""
-st.markdown(hide_streamlit_style, unsafe_allow_html=True)
-
 # Título Fixo e Definitivo
 st.title("🚀 Crypto Futures - Painel de Sinais Institucional")
 
-# 2. Barra Lateral (Configurações)
+# 2. Barra Lateral (Configurações do Robô)
 st.sidebar.header("⚙️ Configurações do Robô")
 
 modo_operacao = st.sidebar.selectbox(
